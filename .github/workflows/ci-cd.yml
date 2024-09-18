@@ -25,13 +25,20 @@ jobs:
       - name: Get commit hash
         id: vars
         run: |
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          echo "COMMIT_HASH=${COMMIT_HASH}" >> $GITHUB_ENV
-          echo "Commit hash: ${COMMIT_HASH}"
+          COMMIT_HASH=$(git rev-parse --short HEAD || echo "latest")
+          echo "Commit Hash: $COMMIT_HASH"
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          # Fallback to 'latest' if the commit hash is empty
+          if [ -z "$COMMIT_HASH" ]; then
+            echo "Commit hash is empty, using 'latest' as the tag"
+            echo "COMMIT_HASH=latest" >> $GITHUB_ENV
+          fi
 
       # Step 4: Build Docker image
       - name: Build Docker image
-        run: docker build -t ${{ env.IMAGE_NAME }}:${{ env.COMMIT_HASH }} .
+        run: |
+          echo "Building image with tag: ${{ env.IMAGE_NAME }}:${{ env.COMMIT_HASH }}"
+          docker build -t ${{ env.IMAGE_NAME }}:${{ env.COMMIT_HASH }} .
 
   push:
     runs-on: ubuntu-latest
@@ -40,8 +47,12 @@ jobs:
     steps:
       # Step 1: Log in to Docker Hub using secrets
       - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+        run: |
+          echo "Logging in to Docker Hub..."
+          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
       # Step 2: Push Docker image
       - name: Push Docker image
-        run: docker push ${{ env.IMAGE_NAME }}:${{ env.COMMIT_HASH }}
+        run: |
+          echo "Pushing image: ${{ env.IMAGE_NAME }}:${{ env.COMMIT_HASH }}"
+          docker push ${{ env.IMAGE_NAME }}:${{ env.COMMIT_HASH }}
