@@ -22,7 +22,7 @@ jobs:
       - name: Get commit hash
         id: vars
         run: |
-          COMMIT_HASH=$(git rev-parse --short HEAD)
+          COMMIT_HASH=$(git rev-parse --short HEAD || echo "latest")
           echo "COMMIT_HASH=${COMMIT_HASH}" >> $GITHUB_ENV
           echo "Commit hash: ${COMMIT_HASH}"
 
@@ -46,6 +46,11 @@ jobs:
         run: |
           echo "Checking Docker images before pushing:"
           docker images
+
+      - name: Debug Environment Variables
+        run: |
+          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}"
+          echo "COMMIT_HASH=${{ env.COMMIT_HASH }}"
 
       - name: Push Docker image
         run: |
